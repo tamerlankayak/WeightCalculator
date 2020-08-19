@@ -5,17 +5,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.android.synthetic.main.activity_main.view.*
 import kotlinx.android.synthetic.main.item_row.view.*
 
-class WeightAdapter(var allWeights: ArrayList<Weight>,var tvAllSum: TextView) :
+class WeightAdapter(var allWeights: ArrayList<Weight>, var tvAllSum: TextView) :
     RecyclerView.Adapter<WeightAdapter.WeightViewHolder>() {
 
     private val mItemClickListener: OnItemClickListener? = null
 
 
     lateinit var tvSum: TextView
-
 
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): WeightViewHolder {
@@ -30,13 +28,13 @@ class WeightAdapter(var allWeights: ArrayList<Weight>,var tvAllSum: TextView) :
 
     override fun onBindViewHolder(holder: WeightViewHolder, position: Int) {
         holder.itemView.apply {
+            tvBarcode.text = allWeights[position].barcode
             tvWeight.text = allWeights[position].weight.toString()
-
             btnDelete.setOnClickListener {
                 allWeights.removeAt(position)
                 notifyItemRemoved(position)
                 notifyItemRangeChanged(position, allWeights.size)
-                sum = barcodes.sumBy { it.weight }
+                sum = barcodes.sumByDouble { it.weight }
                 tvAllSum.setText(sum.toString())
             }
         }

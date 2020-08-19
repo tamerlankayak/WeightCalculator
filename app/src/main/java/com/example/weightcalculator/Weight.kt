@@ -1,3 +1,3 @@
 package com.example.weightcalculator
 
-data class Weight(var weight: Int)
+data class Weight(var barcode: String, var weight: Double)

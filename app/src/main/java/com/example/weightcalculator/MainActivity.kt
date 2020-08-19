@@ -4,17 +4,16 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.os.Vibrator
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.zxing.integration.android.IntentIntegrator
 import kotlinx.android.synthetic.main.activity_main.*
+import java.text.DecimalFormat
 
 var barcodes = arrayListOf<Weight>()
 lateinit var weight: Weight
-var sum = 0
+var sum: Double? = null
 
 class MainActivity : AppCompatActivity() {
 
@@ -22,18 +21,21 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-
-        fun sil(pos: Int) {
-
-        }
-
         btnScan.setOnClickListener {
             scanBarcode()
         }
 
         btnSave.setOnClickListener {
-            var barcode = etBarcode.text.toString().toInt()
-            weight = Weight(barcode)
+            var barcode = etBarcode.text.toString()
+
+
+            val productsWeight = barcode.substring(0, 2) + "." + barcode.substring(2, barcode.dropLast(1).length)
+
+             val productsWeightOriginal = "%3.f".format(productsWeight)
+            weight = Weight(barcode, productsWeightOriginal.toDouble())
+
+
+
             barcodes.add(weight)
             var adapter = WeightAdapter(barcodes, tvSum)
             var recycler = recyclerview
@@ -42,7 +44,7 @@ class MainActivity : AppCompatActivity() {
             recycler.layoutManager = layoutmanager
             adapter.notifyDataSetChanged()
             etBarcode.text.clear()
-            sum = barcodes.sumBy { it.weight }
+            sum = barcodes.sumByDouble { it.weight }
             tvSum.setText(sum.toString())
         }
     }
@@ -51,21 +53,20 @@ class MainActivity : AppCompatActivity() {
 
         val sharedPref =
             this?.getSharedPreferences("com.example.weightcalculator", Context.MODE_PRIVATE)
-
-        val vibrator: Vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         if (resultCode == Activity.RESULT_OK) {
             val result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
             if (result != null) {
                 var name = result.contents
                 Toast.makeText(applicationContext, name, Toast.LENGTH_SHORT).show()
-                weight = Weight(name.toInt())
+                val productsWeight = etBarcode.text.toString().dropLast(1).toDouble()
+                weight = Weight(name, productsWeight)
                 barcodes.add(weight)
                 var adapter = WeightAdapter(barcodes, tvSum)
                 var recycler = recyclerview
                 recycler.adapter = adapter
                 recycler.layoutManager = LinearLayoutManager(this)
                 adapter.notifyDataSetChanged()
-                sum = barcodes.sumBy { it.weight }
+                sum = barcodes.sumByDouble { it.weight }
                 tvSum.setText(sum.toString())
             }
         } else {
