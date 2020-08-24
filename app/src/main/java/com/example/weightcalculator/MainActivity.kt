@@ -1,88 +1,143 @@
 package com.example.weightcalculator
 
-import android.app.Activity
-import android.content.Context
-import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.KeyEvent
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.text.isDigitsOnly
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.zxing.integration.android.IntentIntegrator
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.android.synthetic.main.activity_main.*
-import java.text.DecimalFormat
 
 var barcodes = arrayListOf<Weight>()
 lateinit var weight: Weight
 var sum: Double? = null
+lateinit var adapter: WeightAdapter
 
 class MainActivity : AppCompatActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        btnScan.setOnClickListener {
-            scanBarcode()
-        }
-
+        etBarcode.requestFocus()
+        tvAllProductCount.text = barcodes.size.toString()
         btnSave.setOnClickListener {
             var barcode = etBarcode.text.toString()
+            if (barcode.length != 13 || !barcode.isDigitsOnly()) {
+                MaterialAlertDialogBuilder(this)
+                    .setCancelable(false)
+                    .setTitle("Yanlış formatlı barkod")
+                    .setNegativeButton("Bağla") { dialog, which ->
+                        dialog.dismiss()
+                        etBarcode.text?.clear()
+                        etBarcode.requestFocus()
+                    }.show()
+                return@setOnClickListener
+            }
+            var cutBarcode = barcode.substring(7, 12)
+            val productsWeight =
+                cutBarcode.substring(0, 2) + "." + cutBarcode.substring(2, cutBarcode.length)
+            weight = Weight(1.toString(), productsWeight.toDouble())
 
-
-            val productsWeight = barcode.substring(0, 2) + "." + barcode.substring(2, barcode.dropLast(1).length)
-
-             val productsWeightOriginal = "%3.f".format(productsWeight)
-            weight = Weight(barcode, productsWeightOriginal.toDouble())
-
-
-
-            barcodes.add(weight)
-            var adapter = WeightAdapter(barcodes, tvSum)
+            barcodes.add(0, weight)
+            adapter = WeightAdapter(barcodes, tvSum, btnDeleteAll, tvAllProductCount, etBarcode)
             var recycler = recyclerview
             recycler.adapter = adapter
             var layoutmanager = LinearLayoutManager(this)
             recycler.layoutManager = layoutmanager
             adapter.notifyDataSetChanged()
-            etBarcode.text.clear()
+            btnDeleteAll.visibility = View.VISIBLE
+            etBarcode.text?.clear()
+            etBarcode.requestFocus()
             sum = barcodes.sumByDouble { it.weight }
-            tvSum.setText(sum.toString())
+            tvSum.setText("Toplam: " + String.format("%.3f", sum) + " kq")
+            tvAllProductCount.text = barcodes.size.toString()
+            btnDeleteAll.setOnClickListener {
+                MaterialAlertDialogBuilder(this)
+                    .setTitle("Bütün qeydləri silməyə əminsiniz ?")
+                    .setNegativeButton("Xeyir") { dialog, which ->
+                        dialog.dismiss()
+                        etBarcode.requestFocus()
+                    }
+                    .setPositiveButton("Bəli") { dialog, which ->
+                        barcodes.clear()
+                        adapter.notifyDataSetChanged()
+                        tvAllProductCount.text = barcodes.size.toString()
+                        btnDeleteAll.visibility = View.INVISIBLE
+                        tvSum.setText("Toplam: 0.0 kq")
+                        etBarcode.requestFocus()
+                    }.show()
+            }
+        }
+        etBarcode.addTextChangedListener(checkBarcodeIsEmpty)
+    }
+
+    private val checkBarcodeIsEmpty: TextWatcher = object : TextWatcher {
+        override fun afterTextChanged(s: Editable?) {
+        }
+
+        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+        }
+
+        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+            var barcodeInput = etBarcode.text.toString().trim()
+            btnSave.isEnabled = !(barcodeInput.isEmpty() || barcodeInput.length < 13)
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        return when (keyCode) {
+            KeyEvent.KEYCODE_ENTER -> {
+                var barcode = etBarcode.text.toString()
+                if (barcode.length != 13 || !barcode.isDigitsOnly()) {
+                    MaterialAlertDialogBuilder(this)
+                        .setCancelable(false)
+                        .setTitle("Yanlış formatlı barkod")
+                        .setNegativeButton("Bağla") { dialog, which ->
+                            dialog.dismiss()
+                            etBarcode.text?.clear()
+                            etBarcode.requestFocus()
+                        }.show()
+                    return false
+                }
+                var cutBarcode = barcode.substring(7, 12)
 
-        val sharedPref =
-            this?.getSharedPreferences("com.example.weightcalculator", Context.MODE_PRIVATE)
-        if (resultCode == Activity.RESULT_OK) {
-            val result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
-            if (result != null) {
-                var name = result.contents
-                Toast.makeText(applicationContext, name, Toast.LENGTH_SHORT).show()
-                val productsWeight = etBarcode.text.toString().dropLast(1).toDouble()
-                weight = Weight(name, productsWeight)
-                barcodes.add(weight)
-                var adapter = WeightAdapter(barcodes, tvSum)
+                val productsWeight =
+                    cutBarcode.substring(0, 2) + "." + cutBarcode.substring(2, cutBarcode.length)
+                weight = Weight(1.toString(), productsWeight.toDouble())
+                barcodes.add(0, weight)
+                adapter = WeightAdapter(barcodes, tvSum, btnDeleteAll, tvAllProductCount, etBarcode)
                 var recycler = recyclerview
                 recycler.adapter = adapter
-                recycler.layoutManager = LinearLayoutManager(this)
+                var layoutmanager = LinearLayoutManager(this)
+                recycler.layoutManager = layoutmanager
                 adapter.notifyDataSetChanged()
+                btnDeleteAll.visibility = View.VISIBLE
+                etBarcode.text?.clear()
+                etBarcode.requestFocus()
                 sum = barcodes.sumByDouble { it.weight }
-                tvSum.setText(sum.toString())
+                tvAllProductCount.text = barcodes.size.toString()
+                tvSum.setText("Toplam: " + String.format("%.3f", sum) + " kq")
+                btnDeleteAll.setOnClickListener {
+                    MaterialAlertDialogBuilder(this)
+                        .setTitle("Bütün qeydləri silməyə əminsiniz ?")
+                        .setNegativeButton("Xeyir") { dialog, which ->
+                            dialog.dismiss()
+                            etBarcode.requestFocus()
+                        }
+                        .setPositiveButton("Bəli") { dialog, which ->
+                            barcodes.clear()
+                            adapter.notifyDataSetChanged()
+                            tvAllProductCount.text = barcodes.size.toString()
+                            btnDeleteAll.visibility = View.INVISIBLE
+                            tvSum.setText("Toplam: 0.0 kq")
+                            etBarcode.requestFocus()
+                        }.show()
+                }
+                true
             }
-        } else {
-            super.onActivityResult(requestCode, resultCode, data)
+            else -> super.onKeyUp(keyCode, event)
         }
     }
-
-    fun scanBarcode() {
-        val scanner = IntentIntegrator(this)
-        scanner.setDesiredBarcodeFormats(IntentIntegrator.ONE_D_CODE_TYPES)
-        scanner.setPrompt("Barkoda yaxınlaşdıraraq skan edin");
-        scanner.setOrientationLocked(false)
-        scanner.setBeepEnabled(true)
-        scanner.setBarcodeImageEnabled(true);
-        scanner.initiateScan()
-    }
-
-
 }
