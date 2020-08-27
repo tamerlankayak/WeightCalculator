@@ -3,13 +3,11 @@ package com.example.weightcalculator
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import kotlinx.android.synthetic.main.activity_main.view.*
 import kotlinx.android.synthetic.main.item_row.view.*
 
 class WeightAdapter(
@@ -32,7 +30,7 @@ class WeightAdapter(
 
     override fun onBindViewHolder(holder: WeightViewHolder, position: Int) {
         holder.itemView.apply {
-            tvWeight.setText(String.format("%.3f", allWeights[position].weight) + " kq")
+            tvWeight.text = allWeights[position].weight.toString()
             tvSingleCount.setText(allWeights[position].barcode)
             btnDelete.setOnClickListener {
                 MaterialAlertDialogBuilder(it.context)
